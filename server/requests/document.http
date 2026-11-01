@@ -1,0 +1,11 @@
+### Upload PDF
+POST http://localhost:5000/api/v1/documents
+Content-Type: multipart/form-data; boundary=ApplyLensBoundary
+Cookie: applylens_session=YOUR_SESSION_TOKEN
+
+--ApplyLensBoundary
+Content-Disposition: form-data; name="file"; filename="internship-notice.pdf"
+Content-Type: application/pdf
+
+< ./1.pdf
+--ApplyLensBoundary--

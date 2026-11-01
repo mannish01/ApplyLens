@@ -1,0 +1,7 @@
+### Process Uploaded PDF
+POST http://localhost:5000/api/v1/documents/dfaa5c9f-25c2-4a35-b9f7-207f9b1f2828/process
+Cookie: applylens_session=20b7441e2ef277776fa24594daaea29ea0e1482fbd70f70cca9fa8810d510ced
+
+### Extract Requirements Using Gemini
+POST http://localhost:5000/api/v1/documents/dfaa5c9f-25c2-4a35-b9f7-207f9b1f2828/extract-requirements
+Cookie: applylens_session=20b7441e2ef277776fa24594daaea29ea0e1482fbd70f70cca9fa8810d510ced

@@ -1,0 +1,299 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------- ENUMS ----------------
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum OpportunityType {
+  INTERNSHIP
+  FULL_TIME
+  SCHOLARSHIP
+  HACKATHON
+  RESEARCH
+}
+
+enum ApplicationStatus {
+  SAVED
+  APPLIED
+  ASSESSMENT
+  INTERVIEW
+  OFFERED
+  REJECTED
+  WITHDRAWN
+}
+
+enum RequirementCategory {
+  CGPA
+  BRANCH
+  GRADUATION_YEAR
+  SKILL
+  OTHER
+}
+
+enum AnalysisType {
+  ELIGIBILITY
+  RELEVANCE
+  RESUME_MATCH
+}
+
+enum DocumentStatus {
+  UPLOADED
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+// ---------------- USER ----------------
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  fullName     String   @db.VarChar(80)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String
+  role         UserRole @default(STUDENT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile      StudentProfile?
+  skills       UserSkill[]
+  saved        SavedOpportunity[]
+  applications Application[]
+  aiAnalyses   AIAnalysis[]
+  sessions     Session[]
+  documents    Document[]
+
+  @@map("users")
+}
+
+// ---------------- STUDENT PROFILE ----------------
+
+model StudentProfile {
+  id             String  @id @default(uuid()) @db.Uuid
+  userId         String  @unique @db.Uuid
+  college        String?
+  branch         String?
+  graduationYear Int?
+  cgpa           Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+// ---------------- SKILLS ----------------
+
+model Skill {
+  id   String @id @default(uuid()) @db.Uuid
+  name String @unique @db.VarChar(80)
+
+  users UserSkill[]
+
+  @@map("skills")
+}
+
+// ---------------- USER SKILLS ----------------
+
+model UserSkill {
+  userId  String @db.Uuid
+  skillId String @db.Uuid
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@id([userId, skillId])
+  @@index([skillId])
+  @@map("user_skills")
+}
+
+// ---------------- OPPORTUNITIES ----------------
+
+model Opportunity {
+  id          Int             @id @default(autoincrement())
+  title       String          @db.VarChar(200)
+  company     String          @db.VarChar(150)
+  location    String          @db.VarChar(150)
+  type        OpportunityType
+  stipend     String?         @db.VarChar(100)
+  description String?         @db.Text
+  sourceUrl   String?
+  deadline    DateTime?
+  isActive    Boolean         @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requirements Requirement[]
+  savedBy      SavedOpportunity[]
+  applications Application[]
+  aiAnalyses   AIAnalysis[]
+
+  @@index([type, isActive])
+  @@index([deadline])
+  @@map("opportunities")
+}
+
+// ---------------- REQUIREMENTS ----------------
+
+model Requirement {
+  id            String              @id @default(uuid()) @db.Uuid
+  opportunityId Int
+  category      RequirementCategory
+  description   String              @db.Text
+  isMandatory   Boolean             @default(true)
+  expectedValue String?
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+  @@map("requirements")
+}
+
+// ---------------- SAVED OPPORTUNITIES ----------------
+
+model SavedOpportunity {
+  userId        String   @db.Uuid
+  opportunityId Int
+  savedAt       DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@id([userId, opportunityId])
+  @@index([opportunityId])
+  @@map("saved_opportunities")
+}
+
+// ---------------- APPLICATIONS ----------------
+
+model Application {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @db.Uuid
+  opportunityId Int
+  status        ApplicationStatus @default(APPLIED)
+  appliedAt     DateTime          @default(now())
+  notes         String?           @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, opportunityId])
+  @@index([userId, status])
+  @@index([opportunityId])
+  @@map("applications")
+}
+
+// ---------------- AI ANALYSES ----------------
+
+model AIAnalysis {
+  id            String       @id @default(uuid()) @db.Uuid
+  userId        String       @db.Uuid
+  opportunityId Int
+  type          AnalysisType
+  result        Json
+
+  createdAt DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([userId, opportunityId])
+  @@map("ai_analyses")
+}
+
+// ---------------- SESSIONS ----------------
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ---------------- DOCUMENTS ----------------
+
+model Document {
+  id           String         @id @default(uuid()) @db.Uuid
+  userId       String         @db.Uuid
+  originalName String         @db.VarChar(255)
+  storageKey   String         @unique
+  mimeType     String         @db.VarChar(100)
+  sizeBytes    Int
+  status       DocumentStatus @default(UPLOADED)
+
+  extractedText String?   @db.Text
+  totalPages    Int?
+  processedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pages DocumentPage[]
+  requirements DocumentRequirement[]
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("documents")
+}
+
+// ---------------- DOCUMENT PAGES ----------------
+
+model DocumentPage {
+  id         String @id @default(uuid()) @db.Uuid
+  documentId String @db.Uuid
+  pageNumber Int
+  text       String @db.Text
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, pageNumber])
+  @@index([documentId])
+  @@map("document_pages")
+}
+
+
+model DocumentRequirement {
+  id          String @id @default(uuid()) @db.Uuid
+  documentId  String @db.Uuid
+
+  category    RequirementCategory
+  description String @db.Text
+  isMandatory Boolean @default(true)
+  expectedValue String? @db.Text
+
+  // Evidence from the original PDF
+  pageNumber  Int
+  quote       String @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([documentId, category])
+  @@map("document_requirements")
+}

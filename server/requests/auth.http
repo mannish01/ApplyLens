@@ -1,0 +1,50 @@
+### Register a new student
+POST http://localhost:5000/api/v1/auth/register
+Content-Type: application/json
+
+{
+  "fullName": "Manish",
+  "email": "manish@example.com",
+  "password": "StrongPass123"
+}
+
+### Login
+POST http://localhost:5000/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "manish@example.com",
+  "password": "StrongPass123"
+}
+
+### Get current logged-in user
+GET http://localhost:5000/api/v1/auth/me
+
+### Logout
+POST http://localhost:5000/api/v1/auth/logout
+
+
+### Login
+POST http://localhost:5000/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "manishkumar383904@gmail.com",
+  "password": "Swarn@752"
+}
+
+### 2. Verify session
+GET http://localhost:5000/api/v1/auth/me
+Cookie: 258a761b3489fb16a65e55a567f0edb4acbf451e34e0ed7c897a2346a4dbc834
+
+### 3. Upload PDF
+POST http://localhost:5000/api/v1/documents
+Cookie: applylens_session=aa7c16e319cdb55c9238a4ace91f5aa382117972edac1571254be1d7e91dc06a
+Content-Type: multipart/form-data; boundary=ApplyLensBoundary
+
+--ApplyLensBoundary
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./2.pdf
+--ApplyLensBoundary--
